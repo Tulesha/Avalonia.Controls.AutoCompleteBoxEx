@@ -1,0 +1,19 @@
+<Project>
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <WarningsAsErrors>nullable</WarningsAsErrors>
+        <LtsTargetFramework>net8.0</LtsTargetFramework>
+        <LtsLangVersion>latest</LtsLangVersion>
+    </PropertyGroup>
+    <PropertyGroup>
+        <AvaloniaVersion>11.3.3</AvaloniaVersion>
+    </PropertyGroup>
+    <PropertyGroup>
+        <Version>0.0.1</Version>
+        <Authors>Tulesha</Authors>
+        <Product>Avalonia.Controls.AutoCompleteBoxEx</Product>
+        <RepositoryUrl>https://github.com/Tulesha/Avalonia.Controls.AutoCompleteBoxEx</RepositoryUrl>
+        <PackageTags>Avalonia,AutoCompleteBox,AutoCompleteBoxEx</PackageTags>
+    </PropertyGroup>
+</Project>

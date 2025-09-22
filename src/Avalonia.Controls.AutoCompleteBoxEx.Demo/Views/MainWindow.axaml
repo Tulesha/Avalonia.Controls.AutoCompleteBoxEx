@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Avalonia.Controls.AutoCompleteBoxEx.Demo.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:Avalonia.Controls.AutoCompleteBoxEx.Controls;assembly=Avalonia.Controls.AutoCompleteBoxEx"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Avalonia.Controls.AutoCompleteBoxEx.Demo.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Avalonia.Controls.AutoCompleteBoxEx.Demo">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="*, *"
+          ColumnSpacing="16">
+        <DockPanel Grid.Column="0"
+                   VerticalAlignment="Top">
+            <TextBlock DockPanel.Dock="Left"
+                       Text="Custom AutoCompleteBox"
+                       VerticalAlignment="Center" />
+            <controls:AutoCompleteBoxEx Watermark="AutoCompleteBoxEx"
+                                        ItemsSource="{Binding States}"
+                                        SelectedItem="{Binding SelectedStateEx}" />
+        </DockPanel>
+
+        <DockPanel Grid.Column="1"
+                   VerticalAlignment="Top">
+            <TextBlock DockPanel.Dock="Left"
+                       Text="Avalonia AutoCompleteBox"
+                       VerticalAlignment="Center" />
+            <AutoCompleteBox Watermark="AutoCompleteBox"
+                             ItemsSource="{Binding States}"
+                             SelectedItem="{Binding SelectedState}" />
+        </DockPanel>
+    </Grid>
+
+</Window>

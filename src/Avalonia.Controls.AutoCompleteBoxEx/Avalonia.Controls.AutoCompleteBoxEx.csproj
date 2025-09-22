@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>$(LtsTargetFramework)</TargetFramework>
+        <LangVersion>$(LtsLangVersion)</LangVersion>
+        <Nullable>$(Nullable)</Nullable>
+        <ImplicitUsings>$(ImplicitUsings)</ImplicitUsings>
+        <WarningsAsErrors>$(WarningsAsErrors)</WarningsAsErrors>
+
+        <Version>$(Version)</Version>
+        <Authors>$(Authors)</Authors>
+        <Product>$(Product)</Product>
+        <Description>$(Description)</Description>
+        <RepositoryUrl>$(RepositoryUrl)</RepositoryUrl>
+        <PackageId>AvaloniaControlsAutoCompleteBoxEx</PackageId>
+        <PackageTags>$(PackageTags)</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    </ItemGroup>
+
+</Project>

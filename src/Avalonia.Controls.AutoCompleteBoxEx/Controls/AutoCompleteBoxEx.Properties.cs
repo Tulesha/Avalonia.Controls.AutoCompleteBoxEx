@@ -207,15 +207,18 @@ public partial class AutoCompleteBoxEx
     /// <param name="e">Event arguments.</param>
     private void OnIsDropDownOpenChanged(AvaloniaPropertyChangedEventArgs e)
     {
+        var oldValue = (bool)e.OldValue!;
+        var newValue = (bool)e.NewValue!;
+
+        if (ToggleButton != null)
+            ToggleButton.IsChecked = newValue;
+
         // Ignore the change if requested
         if (_ignorePropertyChange)
         {
             _ignorePropertyChange = false;
             return;
         }
-
-        var oldValue = (bool)e.OldValue!;
-        var newValue = (bool)e.NewValue!;
 
         if (newValue)
         {
@@ -232,11 +235,6 @@ public partial class AutoCompleteBoxEx
     #endregion
 
     #region SelectedItem Property
-
-    /// <summary>
-    /// Gets or sets an old selected item
-    /// </summary>
-    private object? _oldSelectedItem;
 
     /// <summary>
     /// Identifies the <see cref="SelectedItem" /> property.
@@ -588,6 +586,71 @@ public partial class AutoCompleteBoxEx
         {
             SetCurrentValue(IsDropDownOpenProperty, false);
         }
+    }
+
+    #endregion
+
+    #region AddingInnerContent Property
+
+    /// <summary>
+    /// Defines the <see cref="AddingInnerContent"/> property.
+    /// </summary>
+    public static readonly StyledProperty<object?> AddingInnerContentProperty =
+        AvaloniaProperty.Register<AutoCompleteBoxEx, object?>(
+            nameof(AddingInnerContent));
+
+    /// <summary>
+    /// Gets or sets the content which display while user tries to write not existed item from a collection.
+    /// </summary>
+    public object? AddingInnerContent
+    {
+        get => GetValue(AddingInnerContentProperty);
+        set => SetValue(AddingInnerContentProperty, value);
+    }
+
+    #endregion
+
+    #region IsAddingInnerContentEnabled Property
+
+    /// <summary>
+    /// Defines the <see cref="IsAddingInnerContentEnabled"/> property.
+    /// </summary>
+    public static readonly StyledProperty<bool> IsAddingInnerContentEnabledProperty =
+        AvaloniaProperty.Register<AutoCompleteBoxEx, bool>(
+            nameof(IsAddingInnerContentEnabled));
+
+    /// <summary>
+    /// Gets or sets if <see cref="AddingInnerContent"/> is enabled.
+    /// </summary>
+    public bool IsAddingInnerContentEnabled
+    {
+        get => GetValue(IsAddingInnerContentEnabledProperty);
+        set => SetValue(IsAddingInnerContentEnabledProperty, value);
+    }
+
+    #endregion
+
+    #region IsAddingInnerContentVisible Property
+
+    private bool _isAddingInnerContentVisible;
+
+    /// <summary>
+    /// Defines the <see cref="IsAddingInnerContentVisible"/> property.
+    /// </summary>
+    public static readonly DirectProperty<AutoCompleteBoxEx, bool> IsAddingInnerContentVisibleProperty =
+        AvaloniaProperty.RegisterDirect<AutoCompleteBoxEx, bool>(
+            nameof(IsAddingInnerContentVisible),
+            o => o.IsAddingInnerContentVisible,
+            (o, v) => o.IsAddingInnerContentVisible = v,
+            unsetValue: false);
+
+    /// <summary>
+    /// Gets or sets if <see cref="AddingInnerContent"/> is visible.
+    /// </summary>
+    public bool IsAddingInnerContentVisible
+    {
+        get => _isAddingInnerContentVisible;
+        private set => SetAndRaise(IsAddingInnerContentVisibleProperty, ref _isAddingInnerContentVisible, value);
     }
 
     #endregion

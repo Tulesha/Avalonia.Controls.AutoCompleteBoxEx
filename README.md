@@ -18,7 +18,9 @@ A custom implementation of AutoCompleteBox from avalonia
 - Rework logic of applying `SelectedItem` property to the control. Know `SelectedItem` will be set only after hitting
   the `Enter` key, or reaching the filtered item string. If a user hits the `Escape` key or trying to hit `Enter` key,
   while `Text` property is not null or empty, `SelectedItem` will be set to the previous one. User can set
-  `SelectedItem` to the null if he clears `TextBox` and hit an `Enter` key.
+  `SelectedItem` to the null if he clears `TextBox` and hit an `Enter` key
 - Popup opens while user tries to focus the control
 - Remove `F4` key handler
-- Change styles to be closer to the `ComboBox`
+- Implement ToggleButton to open the drop-down
+- Add `AddingInnerContent` property which is representing the content while user tries to reach the item, which isn't 
+in the collection. To enable this feature you need to set `IsAddingInnerContentEnabled` property to `true`

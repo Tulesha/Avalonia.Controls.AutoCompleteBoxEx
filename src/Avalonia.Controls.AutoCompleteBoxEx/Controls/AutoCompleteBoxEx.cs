@@ -20,6 +20,8 @@ namespace Avalonia.Controls.AutoCompleteBoxEx.Controls;
 [TemplatePart(ElementSelector, typeof(SelectingItemsControl))]
 [TemplatePart(ElementSelectionAdapter, typeof(ISelectionAdapter))]
 [TemplatePart(ElementTextBox, typeof(TextBox))]
+[TemplatePart(ElementInnerPanel, typeof(Panel))]
+[TemplatePart(ElementToggleButton, typeof(ToggleButton))]
 [PseudoClasses(":dropdownopen")]
 public partial class AutoCompleteBoxEx : TemplatedControl
 {
@@ -44,6 +46,16 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// The name for the text box part.
     /// </summary>
     private const string ElementTextBox = "PART_TextBox";
+
+    /// <summary>
+    /// The name for the inner content panel part;
+    /// </summary>
+    private const string ElementInnerPanel = "PART_InnerContentPanel";
+
+    /// <summary>
+    /// The name for the toggle button part
+    /// </summary>
+    private const string ElementToggleButton = "PART_ToggleButton";
 
     #endregion
 
@@ -83,7 +95,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     private bool _ignoreTextSelectionChange;
 
     /// <summary>
-    /// Gets or sets a value indicating whether to ignore the focus changing
+    /// Gets or sets a value indicating whether to ignore the focus changing, while use select an item from ListBox
     /// </summary>
     private bool _ignoreFocusChange;
 
@@ -169,6 +181,16 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// Gets or sets the drop down popup control.
     /// </summary>
     private Popup? DropDownPopup { get; set; }
+
+    /// <summary>
+    /// Gets or sets the inner content panel control.
+    /// </summary>
+    private Panel? InnerContentPanel { get; set; }
+
+    /// <summary>
+    /// Gets or sets the toggle button popup control.
+    /// </summary>
+    private ToggleButton? ToggleButton { get; set; }
 
     /// <summary>
     /// Gets or sets the Text template part.
@@ -293,6 +315,12 @@ public partial class AutoCompleteBoxEx : TemplatedControl
             DropDownPopup = null;
         }
 
+        if (ToggleButton != null)
+        {
+            ToggleButton.IsCheckedChanged -= ToggleButton_IsCheckedChanged;
+            ToggleButton = null;
+        }
+
         // Set the template parts. Individual part setters remove and add
         // any event handlers.
         var popup = e.NameScope.Find<Popup>(ElementPopup);
@@ -304,6 +332,14 @@ public partial class AutoCompleteBoxEx : TemplatedControl
 
         SelectionAdapter = GetSelectionAdapterPart(e.NameScope);
         TextBox = e.NameScope.Find<TextBox>(ElementTextBox);
+        InnerContentPanel = e.NameScope.Find<Panel>(ElementInnerPanel);
+
+        var toggleButton = e.NameScope.Find<ToggleButton>(ElementToggleButton);
+        if (toggleButton != null)
+        {
+            ToggleButton = toggleButton;
+            ToggleButton.IsCheckedChanged += ToggleButton_IsCheckedChanged;
+        }
 
         // If the drop down property indicates that the popup is open,
         // flip its value to invoke the changed handler.
@@ -354,24 +390,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         // selection adapter. If it isn't handled by the adapter's logic,
         // then we handle some simple navigation scenarios for controlling
         // the drop down.
-        if (IsDropDownOpen)
-        {
-            if (SelectionAdapter != null)
-            {
-                SelectionAdapter.HandleKeyDown(e);
-                if (e.Handled)
-                {
-                    return;
-                }
-            }
-
-            if (e.Key == Key.Escape)
-            {
-                OnAdapterSelectionCanceled(this, new RoutedEventArgs());
-                e.Handled = true;
-            }
-        }
-        else
+        if (!IsDropDownOpen)
         {
             // The drop down is not open, the Down key will toggle it open.
             // Ignore key buttons, if they are used for XY focus.
@@ -381,6 +400,21 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                 SetCurrentValue(IsDropDownOpenProperty, true);
                 e.Handled = true;
             }
+        }
+
+        if (SelectionAdapter != null)
+        {
+            SelectionAdapter.HandleKeyDown(e);
+            if (e.Handled)
+            {
+                return;
+            }
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            OnAdapterSelectionCanceled(this, new RoutedEventArgs());
+            e.Handled = true;
         }
 
         // Standard drop down navigation
@@ -444,21 +478,20 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         // if you currently have the focus you need to do consult the
         // FocusManager (see HasFocus()).
 
-        if (_ignoreFocusChange)
-        {
-            _ignoreFocusChange = false;
-            return;
-        }
-
         var wasFocused = _isFocused;
         _isFocused = hasFocus;
 
+        if (_ignoreFocusChange)
+            return;
+
         if (hasFocus)
         {
-            if (!wasFocused && TextBox != null && TextBoxSelectionLength <= 0)
+            if (!wasFocused && TextBoxSelectionLength <= 0)
             {
-                TextBox.Focus();
-                TextBox.SelectAll();
+                TextBox?.Focus();
+                TextBox?.SelectAll();
+                if (InnerContentPanel != null)
+                    InnerContentPanel.IsHitTestVisible = true;
 
                 SetCurrentValue(IsDropDownOpenProperty, true);
             }
@@ -478,7 +511,11 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                  (focused != this &&
                   focused is Visual v && !this.IsVisualAncestorOf(v))))
             {
+                if (InnerContentPanel != null)
+                    InnerContentPanel.IsHitTestVisible = false;
+
                 SetCurrentValue(IsDropDownOpenProperty, false);
+                OnAdapterSelectionComplete(false);
             }
 
             _userCalledPopulate = false;
@@ -573,8 +610,6 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         if (IsDropDownOpen)
         {
             SetCurrentValue(IsDropDownOpenProperty, false);
-
-            OnAdapterSelectionComplete(false);
         }
 
         // Fire the DropDownClosed event
@@ -582,6 +617,19 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         {
             OnDropDownClosed(EventArgs.Empty);
         }
+    }
+
+    /// <summary>
+    /// Connects to the ToggleButton IsCheckedChanged event.
+    /// </summary>
+    /// <param name="sender">The source object.</param>
+    /// <param name="e">The event data.</param>
+    private void ToggleButton_IsCheckedChanged(object? sender, RoutedEventArgs e)
+    {
+        if (ToggleButton?.IsChecked == null)
+            return;
+
+        SetValue(IsDropDownOpenProperty, ToggleButton.IsChecked.Value);
     }
 
     /// <summary>
@@ -1032,15 +1080,22 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                 AutoCompleteSearch.GetFilter(AutoCompleteFilterMode.EqualsCaseSensitive));
         }
 
-        _oldSelectedItem = SelectedItem;
+        var ignoreUpdatingAddingInnerContent = false;
+        if (newSelectedItem == null)
+        {
+            SetIsAddingInnerContentVisible(!string.IsNullOrEmpty(text));
+            ignoreUpdatingAddingInnerContent = true;
+        }
 
         // Update the selected item property
-        if (_oldSelectedItem != newSelectedItem)
+        if (SelectedItem != newSelectedItem)
         {
             if (newSelectedItem != null)
             {
                 _skipSelectedItemTextUpdate = true;
                 _ignoreAdapterSelectionCommiting = true;
+
+                SetIsAddingInnerContentVisible(false);
                 SetCurrentValue(SelectedItemProperty, newSelectedItem);
             }
             else
@@ -1048,11 +1103,28 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                 _ignoreAdapterSelectionCommiting = false;
             }
         }
+        else
+        {
+            if (!ignoreUpdatingAddingInnerContent)
+                SetIsAddingInnerContentVisible(false);
+        }
 
         // Restore updates for TextSelection
         if (_ignoreTextSelectionChange)
         {
             _ignoreTextSelectionChange = false;
+        }
+    }
+
+    /// <summary>
+    /// Sets <see cref="IsAddingInnerContentVisible"/> property
+    /// </summary>
+    /// <param name="value"></param>
+    private void SetIsAddingInnerContentVisible(bool value)
+    {
+        if (IsAddingInnerContentEnabled)
+        {
+            IsAddingInnerContentVisible = value;
         }
     }
 
@@ -1132,7 +1204,15 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// <param name="e">The event data.</param>
     private void OnAdapterSelectionCommitComplete(object? sender, RoutedEventArgs e)
     {
-        OnAdapterSelectionComplete(true);
+        _ignoreFocusChange = true;
+        try
+        {
+            OnAdapterSelectionComplete(true);
+        }
+        finally
+        {
+            _ignoreFocusChange = false;
+        }
     }
 
     /// <summary>
@@ -1147,6 +1227,9 @@ public partial class AutoCompleteBoxEx : TemplatedControl
 
     private void OnAdapterSelectionComplete(bool fromCommit)
     {
+        ClearSearchTextProperty();
+        SetIsAddingInnerContentVisible(false);
+
         if (fromCommit)
         {
             if (_adapter!.SelectedItem == null)
@@ -1162,30 +1245,27 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                     else
                     {
                         ClearSearchTextProperty();
-                        OnSelectedItemChanged(_oldSelectedItem);
+                        OnSelectedItemChanged(SelectedItem);
                     }
                 }
             }
             else
-                SetCurrentValue(SelectedItemProperty, _adapter!.SelectedItem);
+            {
+                if (SelectedItem != _adapter!.SelectedItem)
+                    SetCurrentValue(SelectedItemProperty, _adapter!.SelectedItem);
+                else 
+                    OnSelectedItemChanged(SelectedItem);
+            }
         }
         else
         {
-            ClearSearchTextProperty();
-            OnSelectedItemChanged(_oldSelectedItem);
+            OnSelectedItemChanged(SelectedItem);
         }
 
-        ClearSearchTextProperty();
-
-        _oldSelectedItem = null;
-
-        _ignoreFocusChange = true;
         SetCurrentValue(IsDropDownOpenProperty, false);
 
         // Text should not be selected
         ClearTextBoxSelection();
-
-        TextBox!.Focus();
     }
 
     /// <summary>

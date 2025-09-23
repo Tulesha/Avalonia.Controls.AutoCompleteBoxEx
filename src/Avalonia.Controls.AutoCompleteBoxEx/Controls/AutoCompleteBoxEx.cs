@@ -514,7 +514,6 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                 if (InnerContentPanel != null)
                     InnerContentPanel.IsHitTestVisible = false;
 
-                SetCurrentValue(IsDropDownOpenProperty, false);
                 OnAdapterSelectionComplete(false);
             }
 
@@ -1244,7 +1243,6 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                     }
                     else
                     {
-                        ClearSearchTextProperty();
                         OnSelectedItemChanged(SelectedItem);
                     }
                 }

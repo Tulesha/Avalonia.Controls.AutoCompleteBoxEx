@@ -1178,6 +1178,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// <param name="newItem">The new item.</param>
     private void OnSelectedItemChanged(object? newItem)
     {
+        SetIsAddingInnerContentVisible(false);
         string? text;
 
         if (newItem == null)
@@ -1227,7 +1228,6 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     private void OnAdapterSelectionComplete(bool fromCommit)
     {
         ClearSearchTextProperty();
-        SetIsAddingInnerContentVisible(false);
 
         if (fromCommit)
         {

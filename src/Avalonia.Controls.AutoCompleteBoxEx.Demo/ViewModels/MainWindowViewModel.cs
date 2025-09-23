@@ -1,5 +1,7 @@
-﻿using Avalonia.Controls.AutoCompleteBoxEx.Demo.Models;
+﻿using System.Collections.ObjectModel;
+using Avalonia.Controls.AutoCompleteBoxEx.Demo.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Avalonia.Controls.AutoCompleteBoxEx.Demo.ViewModels;
 
@@ -10,10 +12,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
-        States = BuildAllStates();
+        States = new ObservableCollection<StateData>(BuildAllStates());
     }
 
-    public StateData[] States { get; private set; }
+    public ObservableCollection<StateData> States { get; }
 
     private static StateData[] BuildAllStates()
     {
@@ -70,5 +72,13 @@ public partial class MainWindowViewModel : ViewModelBase
             new StateData("Wisconsin", "WI", "Madison"),
             new StateData("Wyoming", "WY", "Cheyenne"),
         };
+    }
+
+    [RelayCommand]
+    private void AddState(string name)
+    {
+        var newItem = new StateData(name, string.Empty, string.Empty);
+        States.Add(newItem);
+        SelectedStateEx = newItem;
     }
 }

@@ -1253,7 +1253,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
             {
                 if (SelectedItem != _adapter!.SelectedItem)
                     SetCurrentValue(SelectedItemProperty, _adapter!.SelectedItem);
-                else 
+                else
                     OnSelectedItemChanged(SelectedItem);
             }
         }

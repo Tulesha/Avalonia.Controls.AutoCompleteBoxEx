@@ -73,6 +73,12 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     private AvaloniaList<object>? _view;
 
     /// <summary>
+    /// Gets or sets the item which was reached while user entering the text
+    /// and hits to the element from the collection.
+    /// </summary>
+    private object? _reachedItem;
+
+    /// <summary>
     /// Gets or sets a value to ignore a number of pending change handlers.
     /// The value is decremented after each use. This is used to reset the
     /// value of properties without performing any of the actions in their
@@ -99,17 +105,6 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// Gets or sets a value indicating whether to ignore the focus changing, while use select an item from ListBox
     /// </summary>
     private bool _ignoreFocusChange;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to ignore commiting value on AdapterSelection.Commit
-    /// </summary>
-    private bool _ignoreAdapterSelectionCommiting;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to skip the text update
-    /// processing when the selected item is updated.
-    /// </summary>
-    private bool _skipSelectedItemTextUpdate;
 
     /// <summary>
     /// Gets or sets a value indicating whether the user initiated the
@@ -524,7 +519,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                 if (InnerContentPanel != null)
                     InnerContentPanel.IsHitTestVisible = false;
 
-                OnAdapterSelectionComplete(false);
+                OnAdapterSelectionComplete(false, true);
             }
 
             _userCalledPopulate = false;
@@ -638,7 +633,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         if (ToggleButton?.IsChecked == null)
             return;
 
-        SetValue(IsDropDownOpenProperty, ToggleButton.IsChecked.Value);
+        SetCurrentValue(IsDropDownOpenProperty, ToggleButton.IsChecked.Value);
     }
 
     /// <summary>
@@ -1126,17 +1121,11 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         // Update the selected item property
         if (SelectedItem != newSelectedItem)
         {
+            _reachedItem = newSelectedItem;
+
             if (newSelectedItem != null)
             {
-                _skipSelectedItemTextUpdate = true;
-                _ignoreAdapterSelectionCommiting = true;
-
                 SetIsAddingInnerContentVisible(false);
-                SetCurrentValue(SelectedItemProperty, newSelectedItem);
-            }
-            else
-            {
-                _ignoreAdapterSelectionCommiting = false;
             }
         }
         else
@@ -1244,7 +1233,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         _ignoreFocusChange = true;
         try
         {
-            OnAdapterSelectionComplete(true);
+            OnAdapterSelectionComplete(true, false);
         }
         finally
         {
@@ -1259,10 +1248,10 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// <param name="e">The event data.</param>
     private void OnAdapterSelectionCancelComplete(object? sender, RoutedEventArgs e)
     {
-        OnAdapterSelectionComplete(false);
+        OnAdapterSelectionComplete(false, false);
     }
 
-    private void OnAdapterSelectionComplete(bool fromCommit)
+    private void OnAdapterSelectionComplete(bool fromCommit, bool fromFocus)
     {
         ClearSearchTextProperty();
 
@@ -1274,14 +1263,10 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                     SetCurrentValue(SelectedItemProperty, null);
                 else
                 {
-                    if (_ignoreAdapterSelectionCommiting)
-                    {
-                        _ignoreAdapterSelectionCommiting = false;
-                    }
+                    if (_reachedItem != null)
+                        SetCurrentValue(SelectedItemProperty, _reachedItem);
                     else
-                    {
                         OnSelectedItemChanged(SelectedItem);
-                    }
                 }
             }
             else
@@ -1294,9 +1279,23 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         }
         else
         {
-            OnSelectedItemChanged(SelectedItem);
+            if (fromFocus)
+            {
+                if (ResetSelectedItemOnLostFocusWhenReachItem)
+                    OnSelectedItemChanged(SelectedItem);
+                else
+                {
+                    if (_reachedItem != null)
+                        SetCurrentValue(SelectedItemProperty, _reachedItem);
+                    else
+                        OnSelectedItemChanged(SelectedItem);
+                }
+            }
+            else
+                OnSelectedItemChanged(SelectedItem);
         }
 
+        _reachedItem = null;
         SetCurrentValue(IsDropDownOpenProperty, false);
 
         // Text should not be selected

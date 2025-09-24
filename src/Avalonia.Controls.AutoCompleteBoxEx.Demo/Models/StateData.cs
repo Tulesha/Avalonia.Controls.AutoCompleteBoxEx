@@ -12,4 +12,9 @@ public class StateData
         Abbreviation = abbreviatoin;
         Capital = capital;
     }
+
+    public override string ToString()
+    {
+        return Name;
+    }
 }

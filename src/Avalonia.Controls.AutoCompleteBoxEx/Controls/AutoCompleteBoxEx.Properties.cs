@@ -282,14 +282,7 @@ public partial class AutoCompleteBoxEx
         }
 
         // Update the text display
-        if (_skipSelectedItemTextUpdate)
-        {
-            _skipSelectedItemTextUpdate = false;
-        }
-        else
-        {
-            OnSelectedItemChanged(e.NewValue);
-        }
+        OnSelectedItemChanged(e.NewValue);
 
         // Fire the SelectionChanged event
         var removed = new List<object>();
@@ -641,6 +634,27 @@ public partial class AutoCompleteBoxEx
             SetCurrentValue(ItemTemplateProperty, template);
             _settingItemTemplateFromValueMemberBinding = false;
         }
+    }
+
+    #endregion
+
+    #region ResetSelectedItemOnLostFocus Property
+
+    /// <summary>
+    /// Defines <see cref="ResetSelectedItemOnLostFocusWhenReachItem"/> property
+    /// </summary>
+    public static readonly StyledProperty<bool> ResetSelectedItemOnLostFocusWhenReachItemProperty =
+        AvaloniaProperty.Register<AutoCompleteBoxEx, bool>(
+            nameof(ResetSelectedItemOnLostFocusWhenReachItem),
+            defaultValue: true);
+
+    /// <summary>
+    /// Gets or sets is selected item will be reset to the previous value, even if the user reaches the item by input.
+    /// </summary>
+    public bool ResetSelectedItemOnLostFocusWhenReachItem
+    {
+        get => GetValue(ResetSelectedItemOnLostFocusWhenReachItemProperty);
+        set => SetValue(ResetSelectedItemOnLostFocusWhenReachItemProperty, value);
     }
 
     #endregion

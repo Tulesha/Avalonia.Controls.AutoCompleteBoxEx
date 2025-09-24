@@ -430,6 +430,12 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         }
     }
 
+    /// <summary>
+    /// Provides handling for the
+    /// <see cref="E:Avalonia.InputElement.PointerPressed"/> event.
+    /// </summary>
+    /// <param name="e">A <see cref="T:Avalonia.RoutedEventArgs" />
+    /// that contains the event data.</param>
     private void PointerPressedInternal(PointerPressedEventArgs e)
     {
         if (!_selectAllOnFocus)

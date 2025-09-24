@@ -595,7 +595,7 @@ public partial class AutoCompleteBoxEx
     /// <summary>
     /// Gets or sets the  <see cref="T:Avalonia.Data.Binding" /> that
     /// is used to get the values for display in the text portion of
-    /// the <see cref="AutoCompleteBox" />
+    /// the <see cref="AutoCompleteBoxEx" />
     /// control.
     /// </summary>
     /// <value>The <see cref="T:Avalonia.Data.IBinding" /> object used

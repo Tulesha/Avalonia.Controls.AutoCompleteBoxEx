@@ -34,4 +34,6 @@ A custom implementation of `AutoCompleteBox` from `Avalonia`
 - Remove `F4` key handler
 - Implement `ToggleButton` to open the drop-down
 - Add `AddingInnerContent` property which is representing the content while user tries to reach the item, which isn't
-  in the collection. To enable this feature you need to set `IsAddingInnerContentEnabled` property to `true`
+  in the collection. To enable this feature, you need to set `IsAddingInnerContentEnabled` property to `true`
+- Add `ShowAllItemsOnDropDownOpen` property which is indicating to display all items without filtering while
+user tries to focus control or open Popup

@@ -387,14 +387,6 @@ public partial class AutoCompleteBoxEx
     }
 
     /// <summary>
-    /// Clears the search text property.
-    /// </summary>
-    private void ClearSearchTextProperty()
-    {
-        SearchText = string.Empty;
-    }
-
-    /// <summary>
     /// SearchText property changed handler.
     /// </summary>
     /// <param name="e">Event arguments.</param>
@@ -655,6 +647,27 @@ public partial class AutoCompleteBoxEx
     {
         get => GetValue(ResetSelectedItemOnLostFocusWhenReachItemProperty);
         set => SetValue(ResetSelectedItemOnLostFocusWhenReachItemProperty, value);
+    }
+
+    #endregion
+
+    #region ShowAllItemsOnDropDownOpen Property
+
+    /// <summary>
+    /// Defines <see cref="ShowAllItemsOnDropDownOpen"/> property
+    /// </summary>
+    public static readonly StyledProperty<bool> ShowAllItemsOnDropDownOpenProperty =
+        AvaloniaProperty.Register<AutoCompleteBoxEx, bool>(
+            nameof(ShowAllItemsOnDropDownOpen));
+
+    /// <summary>
+    /// Gets or sets is popup will contain all items while user try to focus control, switch toggle button or
+    /// hitting Down key.
+    /// </summary>
+    public bool ShowAllItemsOnDropDownOpen
+    {
+        get => GetValue(ShowAllItemsOnDropDownOpenProperty);
+        set => SetValue(ShowAllItemsOnDropDownOpenProperty, value);
     }
 
     #endregion

@@ -29,7 +29,9 @@
                                         ItemsSource="{Binding States}"
                                         SelectedItem="{Binding SelectedStateEx}"
                                         ValueMemberBinding="{Binding Name, DataType=models:StateData}"
-                                        IsAddingInnerContentEnabled="True">
+                                        IsAddingInnerContentEnabled="True"
+                                        ResetSelectedItemOnLostFocusWhenReachItem="False"
+                                        ShowAllItemsOnDropDownOpen="True">
                 <controls:AutoCompleteBoxEx.AddingInnerContent>
                     <Button Focusable="False"
                             Command="{Binding AddStateCommand}"

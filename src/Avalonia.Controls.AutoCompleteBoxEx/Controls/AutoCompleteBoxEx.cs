@@ -118,6 +118,16 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     private bool _popupHasOpened;
 
     /// <summary>
+    /// A value indicating whether the SearchText property will be cleared.
+    /// </summary>
+    private bool _clearSearchText;
+
+    /// <summary>
+    /// A value indicating whether the TextBox will select all.
+    /// </summary>
+    private bool _selectAllOnFocus;
+
+    /// <summary>
     /// Gets or sets the DispatcherTimer used for the MinimumPopulateDelay
     /// condition for auto completion.
     /// </summary>
@@ -175,6 +185,11 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         ItemsSourceProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnItemsSourcePropertyChanged(e));
         ItemTemplateProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnItemTemplatePropertyChanged(e));
         IsEnabledProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnControlIsEnabledChanged(e));
+
+        PointerPressedEvent.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.PointerPressedInternal(e),
+            RoutingStrategies.Bubble, true);
+        KeyDownEvent.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnKeyDownInternal(e),
+            RoutingStrategies.Bubble | RoutingStrategies.Tunnel);
     }
 
     public AutoCompleteBoxEx()
@@ -220,21 +235,6 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                 {
                     UpdateTextValue(Text);
                 }
-            }
-        }
-    }
-
-    private int TextBoxSelectionLength
-    {
-        get
-        {
-            if (TextBox != null)
-            {
-                return Math.Abs(TextBox.SelectionEnd - TextBox.SelectionStart);
-            }
-            else
-            {
-                return 0;
             }
         }
     }
@@ -380,21 +380,13 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// </summary>
     /// <param name="e">A <see cref="T:Avalonia.Input.KeyEventArgs" />
     /// that contains the event data.</param>
-    protected override void OnKeyDown(KeyEventArgs e)
+    private void OnKeyDownInternal(KeyEventArgs e)
     {
-        _ = e ?? throw new ArgumentNullException(nameof(e));
-
-        base.OnKeyDown(e);
-
         if (e.Handled || !IsEnabled)
         {
             return;
         }
 
-        // The drop down is open, pass along the key event arguments to the
-        // selection adapter. If it isn't handled by the adapter's logic,
-        // then we handle some simple navigation scenarios for controlling
-        // the drop down.
         if (!IsDropDownOpen)
         {
             // The drop down is not open, the Down key will toggle it open.
@@ -402,12 +394,14 @@ public partial class AutoCompleteBoxEx : TemplatedControl
             if (e.Key == Key.Down
                 && !XYFocusHelpersEx.IsAllowedXYNavigationMode(this, e.KeyDeviceType))
             {
+                _clearSearchText = true;
+                SelectAllTextBoxSelection();
                 SetCurrentValue(IsDropDownOpenProperty, true);
                 e.Handled = true;
             }
         }
 
-        if (SelectionAdapter != null)
+        if (SelectionAdapter != null && !e.Handled)
         {
             SelectionAdapter.HandleKeyDown(e);
             if (e.Handled)
@@ -434,6 +428,15 @@ public partial class AutoCompleteBoxEx : TemplatedControl
 
                 break;
         }
+    }
+
+    private void PointerPressedInternal(PointerPressedEventArgs e)
+    {
+        if (!_selectAllOnFocus)
+            return;
+
+        _selectAllOnFocus = false;
+        SelectAllTextBoxSelection();
     }
 
     /// <summary>
@@ -491,13 +494,15 @@ public partial class AutoCompleteBoxEx : TemplatedControl
 
         if (hasFocus)
         {
-            if (!wasFocused && TextBoxSelectionLength <= 0)
+            if (!wasFocused)
             {
                 TextBox?.Focus();
-                TextBox?.SelectAll();
+                _selectAllOnFocus = true;
+
                 if (InnerContentPanel != null)
                     InnerContentPanel.IsHitTestVisible = true;
 
+                _clearSearchText = true;
                 SetCurrentValue(IsDropDownOpenProperty, true);
             }
         }
@@ -633,6 +638,15 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         if (ToggleButton?.IsChecked == null)
             return;
 
+        if (IsDropDownOpen == ToggleButton.IsChecked.Value)
+            return;
+
+        if (ToggleButton.IsChecked.Value)
+        {
+            _clearSearchText = true;
+            SelectAllTextBoxSelection();
+        }
+
         SetCurrentValue(IsDropDownOpenProperty, ToggleButton.IsChecked.Value);
     }
 
@@ -646,7 +660,14 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         _delayTimer?.Stop();
 
         // Update the prefix/search text.
-        SearchText = Text;
+        if (_clearSearchText && ShowAllItemsOnDropDownOpen)
+        {
+            SearchText = string.Empty;
+        }
+        else
+        {
+            SearchText = Text;
+        }
 
         // The Populated event enables advanced, custom filtering. The
         // client needs to directly update the ItemsSource collection or
@@ -658,6 +679,8 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         {
             PopulateComplete();
         }
+
+        _clearSearchText = false;
     }
 
     /// <summary>
@@ -669,6 +692,11 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         if (DropDownPopup != null)
         {
             DropDownPopup.IsOpen = true;
+        }
+
+        if (SelectionAdapter != null)
+        {
+            SelectionAdapter.SelectedItem = SelectedItem;
         }
 
         _popupHasOpened = true;
@@ -687,6 +715,8 @@ public partial class AutoCompleteBoxEx : TemplatedControl
             {
                 SelectionAdapter.SelectedItem = null;
             }
+
+            ClearTextBoxSelection();
 
             if (DropDownPopup != null)
             {
@@ -886,7 +916,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
             }
 
             // Cache the current text value
-            var text = Text ?? string.Empty;
+            var text = SearchText ?? string.Empty;
 
             // Determine if any filtering mode is on
             var stringFiltering = TextFilter != null;
@@ -1092,7 +1122,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     {
         // By default this method will clear the selected value
         object? newSelectedItem = null;
-        var text = Text;
+        var text = SearchText;
 
         // Text search is StartsWith explicit and only when enabled, in
         // line with WPF's ComboBox lookup. When in use it will associate
@@ -1122,6 +1152,8 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         if (SelectedItem != newSelectedItem)
         {
             _reachedItem = newSelectedItem;
+            if (SelectionAdapter != null && !_clearSearchText)
+                SelectionAdapter.SelectedItem = newSelectedItem;
 
             if (newSelectedItem != null)
             {
@@ -1185,6 +1217,16 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     private void UpdatePseudoClasses()
     {
         PseudoClasses.Set(":dropdownopen", IsDropDownOpen);
+    }
+
+    private void SelectAllTextBoxSelection()
+    {
+        if (TextBox != null)
+        {
+            var length = TextBox.Text?.Length ?? 0;
+            TextBox.SelectionStart = 0;
+            TextBox.SelectionEnd = length;
+        }
     }
 
     private void ClearTextBoxSelection()
@@ -1253,7 +1295,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
 
     private void OnAdapterSelectionComplete(bool fromCommit, bool fromFocus)
     {
-        ClearSearchTextProperty();
+        SearchText = string.Empty;
 
         if (fromCommit)
         {
@@ -1263,10 +1305,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
                     SetCurrentValue(SelectedItemProperty, null);
                 else
                 {
-                    if (_reachedItem != null)
-                        SetCurrentValue(SelectedItemProperty, _reachedItem);
-                    else
-                        OnSelectedItemChanged(SelectedItem);
+                    OnSelectedItemChanged(SelectedItem);
                 }
             }
             else

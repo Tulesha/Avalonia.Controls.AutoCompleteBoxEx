@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
+using Avalonia.Metadata;
 using Avalonia.Threading;
 
 namespace Avalonia.Controls.AutoCompleteBoxEx.Controls;
@@ -173,6 +174,12 @@ public partial class AutoCompleteBoxEx
     {
         get => GetValue(ItemTemplateProperty);
         set => SetValue(ItemTemplateProperty, value);
+    }
+
+    private void OnItemTemplatePropertyChanged(AvaloniaPropertyChangedEventArgs e)
+    {
+        if (!_settingItemTemplateFromValueMemberBinding)
+            _itemTemplateIsFromValueMemberBinding = false;
     }
 
     #endregion
@@ -585,6 +592,54 @@ public partial class AutoCompleteBoxEx
         if (!isEnabled)
         {
             SetCurrentValue(IsDropDownOpenProperty, false);
+        }
+    }
+
+    #endregion
+
+    #region ValueMemberBinding Property
+
+    /// <summary>
+    /// Gets or sets the  <see cref="T:Avalonia.Data.Binding" /> that
+    /// is used to get the values for display in the text portion of
+    /// the <see cref="AutoCompleteBox" />
+    /// control.
+    /// </summary>
+    /// <value>The <see cref="T:Avalonia.Data.IBinding" /> object used
+    /// when binding to a collection property.</value>
+    [AssignBinding]
+    [InheritDataTypeFromItems(nameof(ItemsSource))]
+    public IBinding? ValueMemberBinding
+    {
+        get => _valueBindingEvaluator?.ValueBinding;
+        set
+        {
+            if (ValueMemberBinding != value)
+            {
+                _valueBindingEvaluator = new BindingEvaluator<string>(value);
+                OnValueMemberBindingChanged(value);
+            }
+        }
+    }
+
+    private void OnValueMemberBindingChanged(IBinding? value)
+    {
+        if (_itemTemplateIsFromValueMemberBinding)
+        {
+            var template =
+                new FuncDataTemplate(
+                    typeof(object),
+                    (o, _) =>
+                    {
+                        var control = new ContentControl();
+                        if (value is not null)
+                            control.Bind(ContentControl.ContentProperty, value);
+                        return control;
+                    });
+
+            _settingItemTemplateFromValueMemberBinding = true;
+            SetCurrentValue(ItemTemplateProperty, template);
+            _settingItemTemplateFromValueMemberBinding = false;
         }
     }
 

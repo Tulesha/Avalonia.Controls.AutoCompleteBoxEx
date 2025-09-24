@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Avalonia.Collections;
 using Avalonia.Controls.AutoCompleteBoxEx.Helpers;
@@ -150,9 +151,17 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     private ISelectionAdapter? _adapter;
 
     /// <summary>
+    /// A control that can provide updated string values from a binding.
+    /// </summary>
+    private BindingEvaluator<string>? _valueBindingEvaluator;
+
+    /// <summary>
     /// A weak subscription for the collection changed event.
     /// </summary>
     private IDisposable? _collectionChangeSubscription;
+
+    private bool _itemTemplateIsFromValueMemberBinding = true;
+    private bool _settingItemTemplateFromValueMemberBinding;
 
     private bool _isFocused;
 
@@ -169,6 +178,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         SearchTextProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnSearchTextPropertyChanged(e));
         FilterModeProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnFilterModePropertyChanged(e));
         ItemsSourceProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnItemsSourcePropertyChanged(e));
+        ItemTemplateProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnItemTemplatePropertyChanged(e));
         IsEnabledProperty.Changed.AddClassHandler<AutoCompleteBoxEx>((x, e) => x.OnControlIsEnabledChanged(e));
     }
 
@@ -693,6 +703,25 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     }
 
     /// <summary>
+    /// Formats an Item for text comparisons based on Converter
+    /// and ConverterCulture properties.
+    /// </summary>
+    /// <param name="value">The object to format.</param>
+    /// <param name="clearDataContext">A value indicating whether to clear
+    /// the data context after the lookup is performed.</param>
+    /// <returns>Formatted Value.</returns>
+    private string? FormatValue(object? value, bool clearDataContext)
+    {
+        var result = FormatValue(value);
+        if (clearDataContext && _valueBindingEvaluator != null)
+        {
+            _valueBindingEvaluator.ClearDataContext();
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Converts the specified object to a string by using the
     /// <see cref="P:Avalonia.Data.Binding.Converter" /> and
     /// <see cref="P:Avalonia.Data.Binding.ConverterCulture" /> values
@@ -707,7 +736,12 @@ public partial class AutoCompleteBoxEx : TemplatedControl
     /// </remarks>
     protected virtual string? FormatValue(object? value)
     {
-        return value == null ? String.Empty : value.ToString();
+        if (_valueBindingEvaluator != null)
+        {
+            return _valueBindingEvaluator.GetDynamicValue(value) ?? string.Empty;
+        }
+
+        return value == null ? string.Empty : value.ToString();
     }
 
     /// <summary>
@@ -902,6 +936,9 @@ public partial class AutoCompleteBoxEx : TemplatedControl
 
             _view?.Clear();
             _view?.AddRange(newViewItems);
+
+            // Clear the evaluator to discard a reference to the last item
+            _valueBindingEvaluator?.ClearDataContext();
         }
         finally
         {
@@ -1187,7 +1224,7 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         }
         else
         {
-            text = FormatValue(newItem);
+            text = FormatValue(newItem, true);
         }
 
         // Update the Text property and the TextBox values
@@ -1495,6 +1532,116 @@ public partial class AutoCompleteBoxEx : TemplatedControl
         public static bool EqualsOrdinalCaseSensitive(string? text, string? value)
         {
             return string.Equals(value, text, StringComparison.Ordinal);
+        }
+    }
+
+    #endregion
+
+    #region BindingEvaluator
+
+    /// <summary>
+    /// A framework element that permits a binding to be evaluated in a new data
+    /// context leaf node.
+    /// </summary>
+    /// <typeparam name="T">The type of dynamic binding to return.</typeparam>
+    public class BindingEvaluator<T> : Control
+    {
+        /// <summary>
+        /// Gets or sets the string value binding used by the control.
+        /// </summary>
+        private IBinding? _binding;
+
+        /// <summary>
+        /// Identifies the Value dependency property.
+        /// </summary>
+        [SuppressMessage("AvaloniaProperty",
+            "AVP1002:AvaloniaProperty objects should not be owned by a generic type",
+            Justification = "This property is not supposed to be used from XAML.")]
+        public static readonly StyledProperty<T?> ValueProperty =
+            AvaloniaProperty.Register<BindingEvaluator<T?>, T?>(nameof(Value));
+
+        /// <summary>
+        /// Gets or sets the data item value.
+        /// </summary>
+        public T? Value
+        {
+            get => GetValue(ValueProperty);
+            set => SetValue(ValueProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the value binding.
+        /// </summary>
+        public IBinding? ValueBinding
+        {
+            get => _binding;
+            set
+            {
+                _binding = value;
+                if (value is not null)
+                    Bind(ValueProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the BindingEvaluator class.
+        /// </summary>
+        public BindingEvaluator()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the BindingEvaluator class,
+        /// setting the initial binding to the provided parameter.
+        /// </summary>
+        /// <param name="binding">The initial string value binding.</param>
+        public BindingEvaluator(IBinding? binding)
+            : this()
+        {
+            ValueBinding = binding;
+        }
+
+        /// <summary>
+        /// Clears the data context so that the control does not keep a
+        /// reference to the last-looked up item.
+        /// </summary>
+        public void ClearDataContext()
+        {
+            DataContext = null;
+        }
+
+        /// <summary>
+        /// Updates the data context of the framework element and returns the
+        /// updated binding value.
+        /// </summary>
+        /// <param name="o">The object to use as the data context.</param>
+        /// <param name="clearDataContext">If set to true, this parameter will
+        /// clear the data context immediately after retrieving the value.</param>
+        /// <returns>Returns the evaluated T value of the bound dependency
+        /// property.</returns>
+        public T? GetDynamicValue(object o, bool clearDataContext)
+        {
+            DataContext = o;
+            var value = Value;
+            if (clearDataContext)
+            {
+                DataContext = null;
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Updates the data context of the framework element and returns the
+        /// updated binding value.
+        /// </summary>
+        /// <param name="o">The object to use as the data context.</param>
+        /// <returns>Returns the evaluated T value of the bound dependency
+        /// property.</returns>
+        public T? GetDynamicValue(object? o)
+        {
+            DataContext = o;
+            return Value;
         }
     }
 

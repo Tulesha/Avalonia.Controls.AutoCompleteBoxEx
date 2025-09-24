@@ -14,7 +14,6 @@ A custom implementation of AutoCompleteBox from avalonia
     - `AsyncPopulatorProperty`
     - `InnerLeftContentProperty`
     - `InnerRightContentProperty`
-    - `ValueMemberBindingProperty`
 - Rework logic of applying `SelectedItem` property to the control. Know `SelectedItem` will be set only after hitting
   the `Enter` key, or reaching the filtered item string. If a user hits the `Escape` key or trying to hit `Enter` key,
   while `Text` property is not null or empty, `SelectedItem` will be set to the previous one. User can set
